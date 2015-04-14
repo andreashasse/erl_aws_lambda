@@ -1,4 +1,4 @@
--module(awslambda_app).
+-module(aws_lambda_app).
 
 -behaviour(application).
 
@@ -10,7 +10,7 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-    awslambda_sup:start_link().
+    aws_lambda_sup:start_link().
 
 stop(_State) ->
     ok.

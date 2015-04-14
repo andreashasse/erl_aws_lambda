@@ -1,4 +1,4 @@
-{application, awslambda,
+{application, aws_lambda,
  [
   {description, "AWS lambda api"},
   {vsn, "0.1.0"},
@@ -6,9 +6,8 @@
   {applications, [
                   kernel,
                   stdlib,
-                  aws_http,
-                  jiffy
+                  aws_http
                  ]},
-  {mod, { awslambda_app, []}},
+  {mod, { aws_lambda_app, []}},
   {env, []}
  ]}.

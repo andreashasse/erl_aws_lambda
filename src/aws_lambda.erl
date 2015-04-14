@@ -1,4 +1,4 @@
--module(awslambda).
+-module(aws_lambda).
 
 -export([get_function/3, invoke/4]).
 %% Application api
@@ -13,13 +13,7 @@ get_function(Name, Headers0, Opts) ->
     Headers = [{"Content-Type", "application/json"}|Headers0],
     aws_http:get(Path, Headers, ?SERVICE, Opts).
 
-%% Do you own json encode / decode
 invoke(Name, Payload, Headers0, Opts) ->
     Path = [?API_VERSION, "functions", Name, "invocations"],
     Headers = [{"Content-Type", "application/json"}|Headers0],
-    case aws_http:post(Path, Headers, Payload, ?SERVICE, Opts) of
-        {ok, _, _, Msg} ->
-            JsonOpts = proplists:get_value(json_opts, Opts, [return_maps]),
-            {ok, jiffy:decode(Msg, JsonOpts)};
-        Err -> Err
-    end.
+    aws_http:post(Path, Headers, Payload, ?SERVICE, Opts).

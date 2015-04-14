@@ -1,4 +1,4 @@
--module(awslambda_sup).
+-module(aws_lambda_sup).
 
 -behaviour(supervisor).
 
