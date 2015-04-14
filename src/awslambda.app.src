@@ -6,7 +6,8 @@
   {applications, [
                   kernel,
                   stdlib,
-                  party
+                  aws_auth_v4,
+                  jiffy
                  ]},
   {mod, { awslambda_app, []}},
   {env, []}
