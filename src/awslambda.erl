@@ -1,8 +1,9 @@
 -module(awslambda).
 
 -export([get_function/3, invoke/4]).
+%% Application api
+-ignore_xref([get_function/3, invoke/4]).
 
--include_lib("aws_auth_v4/include/aws_auth_v4.hrl").
 
 -define(API_VERSION, "2015-03-31").
 -define(SERVICE, "lambda").

@@ -1,0 +1,3 @@
+:name "erlambda_edts"
+:node-sname "erlambda_edts"
+:lib-dirs '("deps")
