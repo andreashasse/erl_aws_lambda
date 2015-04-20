@@ -1,10 +1,10 @@
 -module(aws_lambda).
 
 -export([get_function/2, invoke/3, create_function/6, delete_function/1,
-         list_functions/1]).
+         list_functions/1, update_code/3]).
 %% Application api
 -ignore_xref([get_function/2, invoke/3, create_function/6, delete_function/1,
-              list_functions/1]).
+              list_functions/1, update_code/3]).
 
 -define(API_VERSION, "2015-03-31").
 -define(CALLBACK, aws_lambda_api_callback).
@@ -13,7 +13,8 @@ get_function(Name, Opts) ->
     Path = [?API_VERSION, "functions", Name, "versions", "HEAD"],
     Headers = [{"Content-Type", "application/json"}],
     case aws_http:get(Path, [], Headers, ?CALLBACK, Opts) of
-        {ok, {{200, _}, _, Msg}} -> Msg;
+        {ok, {{200, _}, _, Msg}} -> {ok, Msg};
+        {ok, {{404, _}, _, _}} -> {error, not_found};
         Resp -> erlang:error({aws_lambda, Resp})
     end.
 
@@ -42,8 +43,17 @@ create_function(Name, ZipBin, Handler, Role, Runtime, Opts) ->
     Path = [?API_VERSION, "functions"],
     Headers = [{"Content-Type", "application/json"}],
     case aws_http:post(Path, Headers, Payload, ?CALLBACK, Opts) of
-        {ok, {{201, _}, _, _}} -> ok;
+        {ok, {{201, _}, _, Msg}} -> {ok, Msg};
         {ok, {{409, _}, _, _}} -> {error, already_exists};
+        Resp -> erlang:error({aws_lambda, Resp})
+    end.
+
+update_code(Name, ZipBin, Opts) ->
+    Payload = #{<<"ZipFile">> => base64:encode(ZipBin)},
+    Path = [?API_VERSION, "functions", Name, "versions", "HEAD", "code"],
+    case aws_http:put(Path, [], Payload, ?CALLBACK, Opts) of
+        {ok, {{200, _}, _, Msg}} -> {ok, Msg};
+        {ok, {{404, _}, _, _}} -> {error, not_found};
         Resp -> erlang:error({aws_lambda, Resp})
     end.
 
@@ -51,8 +61,7 @@ delete_function(Name) ->
     Path = [?API_VERSION, "functions", Name],
     case aws_http:delete(Path, [], ?CALLBACK, []) of
         {ok, {{204, _}, _, _}} -> ok;
-        %% Removing non existing functions are considered ok
-        {ok, {{404, _}, _, _}} -> ok;
+        {ok, {{404, _}, _, _}} -> {error, not_found};
         Resp -> erlang:error({aws_lambda, Resp})
     end.
 
@@ -61,9 +70,10 @@ list_functions(Opts) ->
     OptQuery = [{"Marker", lambda_marker},
                 {"MaxItems", lambda_max_items}],
     Query = opt_props([], OptQuery, Opts),
-    {ok, {{200, _}, _Headers, Body}} =
-        aws_http:get(Path, Query, [], ?CALLBACK, []),
-    Body.
+    case aws_http:get(Path, Query, [], ?CALLBACK, []) of
+        {ok, {{200, _}, _Headers, Body}} -> Body;
+        Resp -> erlang:error({aws_lambda, Resp})
+    end.
 
 %% ---------------------------------------------------------------------------
 %% Internal
