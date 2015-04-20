@@ -12,7 +12,7 @@
 get_function(Name, Opts) ->
     Path = [?API_VERSION, "functions", Name, "versions", "HEAD"],
     Headers = [{"Content-Type", "application/json"}],
-    case aws_http:get(Path, Headers, ?CALLBACK, Opts) of
+    case aws_http:get(Path, [], Headers, ?CALLBACK, Opts) of
         {ok, {{200, _}, _, Msg}} -> Msg;
         Resp -> erlang:error({aws_lambda, Resp})
     end.
@@ -21,7 +21,7 @@ invoke(Name, Payload, Opts) ->
     Path = [?API_VERSION, "functions", Name, "invocations"],
     Headers0 = [{"Content-Type", "application/json"}],
     OptHeaders = [{"X-Amz-Invocation-Type", lambda_invocation_type}],
-    Headers = opt_headers(Headers0, OptHeaders, Opts),
+    Headers = opt_props(Headers0, OptHeaders, Opts),
     case aws_http:post(Path, Headers, Payload, ?CALLBACK, Opts) of
         {ok, {{200, _}, _, Msg}} -> Msg;
         {ok, {{202, _}, _, <<>>}} -> ok; %% FIXME: is this correct?
@@ -56,9 +56,13 @@ delete_function(Name) ->
         Resp -> erlang:error({aws_lambda, Resp})
     end.
 
-list_functions(_Opts) ->
+list_functions(Opts) ->
     Path = [?API_VERSION, "functions"],
-    {ok, {{200, _}, _Headers, Body}} = aws_http:get(Path, [], ?CALLBACK, []),
+    OptQuery = [{"Marker", lambda_marker},
+                {"MaxItems", lambda_max_items}],
+    Query = opt_props([], OptQuery, Opts),
+    {ok, {{200, _}, _Headers, Body}} =
+        aws_http:get(Path, Query, [], ?CALLBACK, []),
     Body.
 
 %% ---------------------------------------------------------------------------
@@ -67,7 +71,7 @@ list_functions(_Opts) ->
 bin(Bin) when is_binary(Bin) -> Bin;
 bin(IoList) when is_list(IoList) -> iolist_to_binary(IoList).
 
-opt_headers(Headers, Vals, Opts) ->
+opt_props(Headers, Vals, Opts) ->
     lists:foldl(
       fun({PayloadName, OptName}, HeadersAcc) ->
               case proplists:get_value(OptName, Opts) of
